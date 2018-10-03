@@ -11,8 +11,9 @@ from keras.layers.merge import add, concatenate
 from keras.layers import Input, Dense, Activation, Reshape, Lambda, GlobalMaxPooling2D
 from keras.models import Model, load_model
 from keras.optimizers import SGD, Adam
+from keras.callbacks import EarlyStopping, ModelCheckpoint
 #from PIL import Image
-import cv2
+import cv2, jiwer
 import numpy as np
 import itertools
 
@@ -166,6 +167,11 @@ def remove_masks(text):
 	return text.replace("<MASK>", "")
 
 
+def get_wer(real, pred):
+	r = remove_masks(" ".join(real))
+	p = remove_masks(" ".join(pred))
+	return jiwer.wer(r, p)
+
 def decode(val_gen, model, vocab):
 	input_layer = model.get_layer(name="image_input").input
 	output_layer = model.get_layer(name="activations").output
@@ -184,6 +190,7 @@ def decode(val_gen, model, vocab):
 			print("Pred:", remove_masks(pred))
 			print("Real:", remove_masks(real))
 			print()
+		print("WER:", get_wer(texts, predicted_texts))
 		#print(predicted_texts)
 	#	print(texts)
 
@@ -192,12 +199,15 @@ def decode(val_gen, model, vocab):
 if __name__ == "__main__":
 	# train_X, train_y = get_data("train")
 	vocab = read_vocab()
-	train_gen = get_data("train", vocab, 10000)
-	val_gen = get_data("test", vocab, 10000)
+	train_gen = get_data("train", vocab, 50000)
+	val_gen = get_data("test", vocab, 50000)
 	# val_X, val_y = get_data("test")
 	model = get_model(vocab)
 #	model.fit_generator(generator=train_gen, steps_per_epoch=50000//config.batch_size//100, epochs=20, validation_data=val_gen, validation_steps=50000//config.batch_size//5//100)
-	model.fit_generator(generator=train_gen, steps_per_epoch=10000//config.batch_size, epochs=50, validation_data=val_gen, validation_steps=10000//config.batch_size)
+	es = EarlyStopping(monitor="val_loss", patience=10, restore_best_weights=True)
+	#mc = ModelCheckpoint("best.hdf5", save_best_only=True)
+	model.fit_generator(generator=train_gen, steps_per_epoch=50000//config.batch_size, epochs=200, validation_data=val_gen, validation_steps=50000//config.batch_size, callbacks=[es])
+#	model = load_model("best.hdf5")
 	#train_gen = get_data("train", vocab, 50)
 	decode(val_gen, model, vocab)
 	# next(train_gen)

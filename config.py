@@ -3,7 +3,7 @@
 
 
 ## TRAINING VARIABLES
-img_h = 64
+img_h = 256
 img_w = 256
 filters = 16
 kernel_size = (3, 3)
@@ -21,5 +21,6 @@ images = "images"
 ocr_images = "ocr_images"
 altos = "alto"
 ocr_texts = "ocr_texts"
+gen_images = "gen_images"
 ocr_extra_px = 5
 train_size = 0.75
